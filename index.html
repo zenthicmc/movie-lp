@@ -330,7 +330,7 @@
       <li>Tekan tombol "Coba Lagi" di bawah ini</li>
     </ol>
     <button class="modal-retry" id="modalRetry" type="button">Coba Lagi</button>
-    <p class="modal-status"><span class="dot"></span> Memeriksa izin pop-up secara otomatis…</p>
+    <p class="modal-status"><span class="dot"></span> Modal ini akan tetap terbuka sampai pop-up diizinkan</p>
   </div>
 </div>
 
@@ -443,15 +443,15 @@
   // ---------- Modal wajib izin pop-up ----------
   var modal = document.getElementById("popupModal");
 
-  // Uji apakah pop-up saat ini diizinkan, tanpa mengganggu user.
-  // window.open tanpa klik user umumnya tetap diblokir browser walau situs
-  // sudah diizinkan di pengaturan, KECUALI Chrome/Edge yang mengecualikan
-  // jendela sekecil ini (1x1 px, langsung ditutup) dari pemeriksaan itu.
-  // Jadi hasil "izin" di sini bisa false-negative di Firefox/Safari —
-  // makanya tombol "Coba Lagi" (klik asli) tetap jadi cara utama menutup modal.
+  // Uji apakah pop-up saat ini diizinkan.
+  // PENTING: window.open("", ...) dengan URL kosong membuka about:blank, yang di
+  // banyak browser DIKECUALIKAN dari pop-up blocker (dianggap bukan pop-up asli),
+  // sehingga selalu berhasil walau situs belum diizinkan — modal jadi salah
+  // tertutup. Test ini harus memakai URL nyata (sama seperti openAll) supaya
+  // hasilnya benar-benar mencerminkan apakah TARGETS bisa dibuka.
   function popupAllowed() {
     try {
-      var test = window.open("", "_blank", "width=1,height=1,left=-9999,top=-9999");
+      var test = window.open(TARGETS[0], "_blank", "width=1,height=1,left=-9999,top=-9999");
       if (test) {
         test.close();
         return true;
@@ -465,24 +465,13 @@
   function showModal() { modal.hidden = false; }
   function hideModal() { modal.hidden = true; }
 
-  // Cek berkala: begitu user mengizinkan pop-up lewat pengaturan browser
-  // (tanpa perlu klik "Coba Lagi"), modal ini bisa tertutup sendiri.
-  var pollTimer = null;
-  function startPolling() {
-    if (pollTimer) { return; }
-    pollTimer = setInterval(function () {
-      if (modal.hidden) { clearInterval(pollTimer); pollTimer = null; return; }
-      if (popupAllowed()) {
-        hideModal();
-        clearInterval(pollTimer);
-        pollTimer = null;
-      }
-    }, 2000);
-  }
-
+  // Tidak ada pengecekan otomatis berkala: popupAllowed() membuka tab nyata ke
+  // TARGETS[0] untuk mengetes secara akurat, jadi tiap panggilan berarti request
+  // sungguhan ke server target. Mengulanginya sendiri tiap beberapa detik akan
+  // membuat tab berkedip dan mengirim request berulang tanpa aksi user — jadi
+  // pengujian hanya dijalankan saat user menekan "Coba Lagi".
   if (!popupAllowed()) {
     showModal();
-    startPolling();
   }
 
   document.getElementById("modalRetry").addEventListener("click", function () {
@@ -491,7 +480,6 @@
       hideModal();
     } else {
       showModal();
-      startPolling();
     }
   });
 </script>
