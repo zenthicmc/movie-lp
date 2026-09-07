@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nonton — Streaming Film & Serial</title>
+<style>
+  * { box-sizing: border-box; }
+  :root {
+    color-scheme: dark;
+    --bg: #0b0f19;
+    --surface: #151b2b;
+    --surface-2: #1e293b;
+    --text: #f8fafc;
+    --muted: #94a3b8;
+    --accent: #f97316;
+  }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: #000;
+    color: var(--text);
+  }
+  a { color: inherit; }
+
+  /* Bungkus semua konten dalam lebar mobile; di layar lebar, sisi kanan-kiri tetap hitam. */
+  .app {
+    max-width: 480px;
+    margin: 0 auto;
+    background: var(--bg);
+    min-height: 100vh;
+  }
+
+  /* ---------- Navbar ---------- */
+  .nav {
+    position: sticky; top: 0; z-index: 50;
+    display: flex; align-items: center; gap: 16px;
+    padding: 12px 16px;
+    background: rgba(11, 15, 25, .88);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255,255,255,.07);
+  }
+  .logo {
+    font-size: 20px; font-weight: 800; letter-spacing: -.5px;
+    color: var(--accent); text-decoration: none; white-space: nowrap;
+  }
+  .nav-menu { display: none; }
+  .search {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--surface-2); border-radius: 999px;
+    padding: 8px 14px; color: var(--muted); font-size: 13px;
+    margin-left: auto;
+  }
+  .search svg { width: 15px; height: 15px; fill: currentColor; }
+
+  /* ---------- Hero ---------- */
+  .hero {
+    position: relative;
+    min-height: 380px;
+    display: flex; align-items: flex-end;
+    padding: 36px 16px;
+    overflow: hidden;
+    background: #151b2b;
+  }
+  .hero img {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    object-fit: cover; z-index: 0;
+  }
+  .hero::before {
+    content: ""; position: absolute; inset: 0; z-index: 1;
+    background: linear-gradient(90deg, rgba(11,15,25,.96) 0%, rgba(11,15,25,.72) 45%, rgba(11,15,25,.35) 100%);
+  }
+  .hero::after {
+    content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 120px; z-index: 1;
+    background: linear-gradient(180deg, transparent, var(--bg));
+    pointer-events: none;
+  }
+  .hero-inner { position: relative; z-index: 2; }
+  .badge {
+    display: inline-block; font-size: 11px; font-weight: 700;
+    letter-spacing: 1.2px; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 12px;
+  }
+  .hero h1 {
+    margin: 0 0 14px; font-size: 30px; line-height: 1.15;
+    font-weight: 800; letter-spacing: -1px;
+  }
+  .hero-meta {
+    display: flex; flex-wrap: wrap; gap: 8px 14px;
+    font-size: 13px; color: var(--muted); margin-bottom: 14px;
+  }
+  .hero-meta .chip {
+    border: 1px solid rgba(255,255,255,.22);
+    border-radius: 4px; padding: 1px 7px; font-size: 11px;
+  }
+  .hero p.desc {
+    margin: 0 0 26px; font-size: 15px; line-height: 1.65; color: #cbd5e1;
+  }
+  .hero-actions { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .btn-play {
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 14px 30px; border: 0; border-radius: 8px; cursor: pointer;
+    background: var(--accent); color: #fff;
+    font-size: 16px; font-weight: 700; font-family: inherit;
+    transition: background .2s, transform .15s;
+  }
+  .btn-play:hover { background: #ea580c; transform: translateY(-1px); }
+  .btn-play svg { width: 20px; height: 20px; fill: currentColor; }
+  .btn-ghost {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 14px 24px; border-radius: 8px; cursor: pointer;
+    background: rgba(255,255,255,.14); color: var(--text);
+    border: 0; font-size: 15px; font-weight: 600; font-family: inherit;
+    transition: background .2s;
+  }
+  .btn-ghost:hover { background: rgba(255,255,255,.22); }
+  .hint {
+    width: 100%; margin: 4px 0 0;
+    font-size: 12px; color: var(--muted);
+  }
+
+  /* ---------- Rows ---------- */
+  main { padding: 8px 16px 44px; }
+
+  .row { margin-top: 32px; }
+  .row h2 {
+    margin: 0 0 14px; font-size: 17px; font-weight: 700; letter-spacing: -.3px;
+  }
+  .grid {
+    display: grid; gap: 16px 10px;
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .card { cursor: pointer; border: 0; padding: 0; background: none; text-align: left; font: inherit; color: inherit; width: 100%; }
+  .thumb {
+    position: relative; width: 100%; aspect-ratio: 16 / 9;
+    border-radius: 8px; overflow: hidden;
+    background: #1e293b;
+    transition: transform .2s ease, box-shadow .2s ease;
+  }
+  .card:hover .thumb, .card:active .thumb {
+    transform: scale(1.045);
+    box-shadow: 0 12px 28px rgba(0,0,0,.55);
+  }
+  .thumb img {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    object-fit: cover; display: block;
+  }
+  .thumb::after {
+    content: ""; position: absolute; inset: 0;
+    background: rgba(0,0,0,.25);
+  }
+  .thumb .mini {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 40px; height: 40px; border-radius: 50%;
+    background: rgba(255,255,255,.95);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 2;
+  }
+  .thumb .mini svg { width: 16px; height: 16px; fill: #0b0f19; margin-left: 2px; }
+  .dur {
+    position: absolute; right: 6px; bottom: 6px; z-index: 2;
+    background: rgba(0,0,0,.78); color: #fff;
+    font-size: 11px; padding: 2px 6px; border-radius: 4px;
+    font-variant-numeric: tabular-nums;
+  }
+  .card h3 {
+    margin: 9px 0 3px; font-size: 14px; font-weight: 600; line-height: 1.35;
+  }
+  .card p { margin: 0; font-size: 12px; color: var(--muted); }
+
+  /* ---------- Warning ---------- */
+  #warn {
+    display: none; margin-top: 26px;
+    padding: 13px 16px; border-radius: 10px;
+    background: #7c2d12; color: #fed7aa;
+    font-size: 13px; line-height: 1.6;
+  }
+
+  /* ---------- Footer ---------- */
+  footer {
+    padding: 30px 24px 44px;
+    border-top: 1px solid rgba(255,255,255,.07);
+    color: #64748b; font-size: 12px; line-height: 1.7;
+  }
+
+  /* ---------- A11y ---------- */
+  :focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+    .card:hover .thumb { transform: none; }
+  }
+
+  /* ---------- Modal wajib pop-up ---------- */
+  .modal-overlay {
+    position: fixed; inset: 0; z-index: 100;
+    background: rgba(0,0,0,.86);
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  .modal-box {
+    width: 100%; max-width: 400px;
+    background: var(--surface); border-radius: 16px;
+    padding: 28px 24px 24px;
+    text-align: center;
+    box-shadow: 0 24px 60px rgba(0,0,0,.6);
+  }
+  .modal-icon {
+    width: 56px; height: 56px; margin: 0 auto 16px;
+    border-radius: 50%; background: rgba(249,115,22,.15);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .modal-icon svg { width: 26px; height: 26px; fill: var(--accent); }
+  .modal-box h2 {
+    margin: 0 0 10px; font-size: 18px; font-weight: 700;
+  }
+  .modal-box p {
+    margin: 0 0 22px; font-size: 14px; line-height: 1.6; color: var(--muted);
+  }
+  .modal-steps {
+    text-align: left; margin: 0 0 22px; padding: 14px 16px;
+    background: var(--surface-2); border-radius: 10px;
+    font-size: 13px; line-height: 1.9; color: #cbd5e1;
+  }
+  .modal-steps li { margin-left: 18px; }
+  .modal-retry {
+    width: 100%; padding: 14px; border: 0; border-radius: 8px; cursor: pointer;
+    background: var(--accent); color: #fff;
+    font-size: 15px; font-weight: 700; font-family: inherit;
+    transition: background .2s;
+  }
+  .modal-retry:hover { background: #ea580c; }
+  .modal-status {
+    margin: 14px 0 0; font-size: 12px; color: var(--muted);
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+  }
+  .modal-status .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--muted);
+    animation: blink 1.4s infinite;
+  }
+  @keyframes blink { 0%, 100% { opacity: .25; } 50% { opacity: 1; } }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <nav class="nav">
+    <a href="#" class="logo">NONTON</a>
+    <div class="nav-menu">
+      <a href="#" class="active">Beranda</a>
+      <a href="#">Film</a>
+      <a href="#">Serial</a>
+      <a href="#">Daftar Saya</a>
+    </div>
+    <div class="search">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"/></svg>
+      <span>Cari</span>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <img src="https://images.unsplash.com/photo-1440404653325-ab127d49abc1?w=900&q=70&auto=format&fit=crop" alt="">
+    <div class="hero-inner">
+      <span class="badge">Sedang Tayang</span>
+      <h1>Cahaya di Ujung Senja</h1>
+      <div class="hero-meta">
+        <span class="chip">HD</span>
+        <span class="chip">13+</span>
+        <span>2026</span>
+        <span>Drama · Petualangan</span>
+        <span>1j 52m</span>
+      </div>
+      <p class="desc">
+        Perjalanan seorang kartografer muda menyusuri pesisir timur untuk memetakan
+        pulau yang tak pernah tercatat, dan menemukan lebih dari sekadar daratan baru.
+      </p>
+      <div class="hero-actions">
+        <button class="btn-play" id="heroPlay">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+          Putar
+        </button>
+        <button class="btn-ghost" type="button">Info Selengkapnya</button>
+        <p class="hint">Menekan putar akan membuka beberapa halaman penawaran di tab baru.</p>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div id="warn">
+      Browser memblokir sebagian tab yang ingin dibuka. Izinkan <b>pop-up</b> untuk
+      situs ini melalui ikon di sisi kanan address bar, lalu tekan putar sekali lagi.
+    </div>
+
+    <section class="row">
+      <h2>Populer Hari Ini</h2>
+      <div class="grid" data-grid="popular"></div>
+    </section>
+
+    <section class="row">
+      <h2>Rilis Terbaru</h2>
+      <div class="grid" data-grid="latest"></div>
+    </section>
+
+    <section class="row">
+      <h2>Rekomendasi Untukmu</h2>
+      <div class="grid" data-grid="recommended"></div>
+    </section>
+  </main>
+
+  <footer>
+    NONTON — katalog contoh untuk keperluan tampilan.<br>
+    Seluruh judul dan keterangan di halaman ini bersifat fiktif.
+  </footer>
+
+</div>
+
+<div class="modal-overlay" id="popupModal" role="dialog" aria-modal="true" aria-labelledby="popupModalTitle" hidden>
+  <div class="modal-box">
+    <div class="modal-icon">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+    </div>
+    <h2 id="popupModalTitle">Izinkan Pop-up Diperlukan</h2>
+    <p>Situs ini butuh izin membuka beberapa tab sekaligus. Aktifkan pop-up untuk situs ini agar bisa melanjutkan.</p>
+    <ol class="modal-steps">
+      <li>Klik ikon pop-up terblokir di address bar (biasanya di kanan)</li>
+      <li>Pilih "Always allow pop-ups from this site"</li>
+      <li>Tekan tombol "Coba Lagi" di bawah ini</li>
+    </ol>
+    <button class="modal-retry" id="modalRetry" type="button">Coba Lagi</button>
+    <p class="modal-status"><span class="dot"></span> Memeriksa izin pop-up secara otomatis…</p>
+  </div>
+</div>
+
+<script>
+  // URL tujuan yang dibuka saat play ditekan.
+  var TARGETS = [
+    "https://t.co/leOWYgiHJZ",
+    "https://t.co/ixwYqvY33Y",
+    "https://t.co/0g5rDlnW7x",
+    "https://t.co/8l7S1BB3yB"
+  ];
+
+  // Katalog contoh. "photo" adalah ID foto Unsplash (bertema sinema/film) untuk thumbnail.
+  var VIDEOS = {
+    popular: [
+      { title: "Jejak di Pasir Utara",  meta: "2026 · Drama",       dur: "1:48", photo: "1517602302552-471fe67acf66", hue: 210 },
+      { title: "Musim Kedua Berakhir",  meta: "Serial · 8 Episode", dur: "0:42", photo: "1517604931442-7e0c8ed2963c", hue: 268 },
+      { title: "Rumah Tanpa Jendela",   meta: "2025 · Misteri",     dur: "2:04", photo: "1478720568477-152d9b164e26", hue: 340 },
+      { title: "Langit Biru Kemarin",   meta: "2026 · Keluarga",    dur: "1:36", photo: "1440404653325-ab127d49abc1", hue: 24  },
+      { title: "Perjalanan Terakhir",   meta: "2025 · Petualangan", dur: "2:11", photo: "1536440136628-849c177e76a1", hue: 160 },
+      { title: "Suara dari Lembah",     meta: "Dokumenter",         dur: "0:58", photo: "1500462918059-b1a0cb512f1d", hue: 190 }
+    ],
+    latest: [
+      { title: "Bab Pertama",           meta: "Serial · Episode 1", dur: "0:47", photo: "1594909122845-11baa439b7bf", hue: 292 },
+      { title: "Kota yang Terlupakan",  meta: "2026 · Thriller",    dur: "1:59", photo: "1516035069371-29a1b244cc32", hue: 12  },
+      { title: "Angin Bulan Juni",      meta: "2026 · Romansa",     dur: "1:41", photo: "1517322048670-4fba75cbbb62", hue: 320 },
+      { title: "Catatan Perjalanan",    meta: "Dokumenter",         dur: "1:12", photo: "1526481280693-3bfa7568e0f3", hue: 140 },
+      { title: "Trailer Resmi",         meta: "Cuplikan",           dur: "0:02", photo: "1485846234645-a62644f84728", hue: 240 },
+      { title: "Malam Tanpa Bintang",   meta: "2025 · Drama",       dur: "2:18", photo: "1517649763962-0c623066013b", hue: 258 }
+    ],
+    recommended: [
+      { title: "Pulau di Peta Lama",    meta: "2026 · Petualangan", dur: "1:53", photo: "1502134249126-9f3755a50d78", hue: 176 },
+      { title: "Dua Sisi Cermin",       meta: "2025 · Misteri",     dur: "1:44", photo: "1483736762161-1d107f3c78e1", hue: 300 },
+      { title: "Panggung Terakhir",     meta: "Serial · 6 Episode", dur: "0:51", photo: "1524985069026-dd778a71c7b4", hue: 40  },
+      { title: "Ombak Bulan Purnama",   meta: "2026 · Drama",       dur: "2:06", photo: "1531259683007-016a7b628fc3", hue: 200 },
+      { title: "Kembali ke Awal",       meta: "2025 · Keluarga",    dur: "1:33", photo: "1594908900066-3f47337549d8", hue: 96  },
+      { title: "Di Balik Layar",        meta: "Cuplikan",           dur: "0:09", photo: "1571847140471-1d7766e825ea", hue: 350 }
+    ]
+  };
+
+  var PLAY_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>';
+
+  function renderGrid(container, items) {
+    items.forEach(function (v) {
+      var card = document.createElement("button");
+      card.type = "button";
+      card.className = "card";
+      card.setAttribute("aria-label", "Putar " + v.title);
+
+      var thumb = document.createElement("div");
+      thumb.className = "thumb";
+      thumb.innerHTML =
+        '<img src="https://images.unsplash.com/photo-' + v.photo + '?w=400&q=65&auto=format&fit=crop" alt="" loading="lazy">' +
+        '<span class="mini">' + PLAY_ICON + '</span>' +
+        '<span class="dur">' + v.dur + '</span>';
+
+      // Kalau gambar gagal dimuat (mis. offline), tampilkan gradasi warna sebagai cadangan.
+      var img = thumb.querySelector("img");
+      img.addEventListener("error", function () {
+        img.remove();
+        thumb.style.background =
+          "linear-gradient(135deg, hsl(" + v.hue + " 55% 32%), hsl(" + (v.hue + 40) + " 60% 18%))";
+      });
+
+      var h3 = document.createElement("h3");
+      h3.textContent = v.title;
+
+      var p = document.createElement("p");
+      p.textContent = v.meta;
+
+      card.appendChild(thumb);
+      card.appendChild(h3);
+      card.appendChild(p);
+      container.appendChild(card);
+    });
+  }
+
+  Object.keys(VIDEOS).forEach(function (key) {
+    var container = document.querySelector('[data-grid="' + key + '"]');
+    if (container) { renderGrid(container, VIDEOS[key]); }
+  });
+
+  function openAll() {
+    var blocked = 0;
+
+    // Semua window.open harus dipanggil sinkron di dalam handler klik.
+    // Ditunda dengan setTimeout, "user gesture" hilang dan tab kedua dst. diblokir.
+    TARGETS.forEach(function (url) {
+      var w = window.open(url, "_blank");
+      // w.opener = null dipakai alih-alih flag "noopener" pada argumen ketiga:
+      // dengan "noopener" window.open selalu mengembalikan null, sehingga tab yang
+      // benar-benar diblokir tidak bisa dibedakan dari yang berhasil.
+      if (w) { w.opener = null; } else { blocked++; }
+    });
+
+    document.getElementById("warn").style.display = blocked ? "block" : "none";
+  }
+
+  document.getElementById("heroPlay").addEventListener("click", openAll);
+
+  // Event delegation: satu listener per baris, bukan per kartu.
+  // Elemen kartu berupa <button>, jadi Enter dan Space sudah ditangani browser
+  // sebagai klik — tidak perlu handler keydown terpisah yang bisa memicu ganda.
+  document.querySelectorAll(".grid").forEach(function (grid) {
+    grid.addEventListener("click", function (e) {
+      if (e.target.closest(".card")) { openAll(); }
+    });
+  });
+
+  // ---------- Modal wajib izin pop-up ----------
+  var modal = document.getElementById("popupModal");
+
+  // Uji apakah pop-up saat ini diizinkan, tanpa mengganggu user.
+  // window.open tanpa klik user umumnya tetap diblokir browser walau situs
+  // sudah diizinkan di pengaturan, KECUALI Chrome/Edge yang mengecualikan
+  // jendela sekecil ini (1x1 px, langsung ditutup) dari pemeriksaan itu.
+  // Jadi hasil "izin" di sini bisa false-negative di Firefox/Safari —
+  // makanya tombol "Coba Lagi" (klik asli) tetap jadi cara utama menutup modal.
+  function popupAllowed() {
+    try {
+      var test = window.open("", "_blank", "width=1,height=1,left=-9999,top=-9999");
+      if (test) {
+        test.close();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function showModal() { modal.hidden = false; }
+  function hideModal() { modal.hidden = true; }
+
+  // Cek berkala: begitu user mengizinkan pop-up lewat pengaturan browser
+  // (tanpa perlu klik "Coba Lagi"), modal ini bisa tertutup sendiri.
+  var pollTimer = null;
+  function startPolling() {
+    if (pollTimer) { return; }
+    pollTimer = setInterval(function () {
+      if (modal.hidden) { clearInterval(pollTimer); pollTimer = null; return; }
+      if (popupAllowed()) {
+        hideModal();
+        clearInterval(pollTimer);
+        pollTimer = null;
+      }
+    }, 2000);
+  }
+
+  if (!popupAllowed()) {
+    showModal();
+    startPolling();
+  }
+
+  document.getElementById("modalRetry").addEventListener("click", function () {
+    // Klik ini adalah user gesture asli, jadi window.open pasti diuji dengan valid.
+    if (popupAllowed()) {
+      hideModal();
+    } else {
+      showModal();
+      startPolling();
+    }
+  });
+</script>
+</body>
+</html>
